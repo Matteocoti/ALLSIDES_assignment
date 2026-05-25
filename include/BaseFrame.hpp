@@ -23,4 +23,13 @@ class BaseFrame
     {
         return data_[x + y * WIDTH];
     }
+
+    type &operator[](int i)
+    {
+        return data_[i];
+    }
+    const type &operator[](int i) const
+    {
+        return data_[i];
+    }
 };
