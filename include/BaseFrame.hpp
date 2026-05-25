@@ -1,4 +1,6 @@
+#pragma once
 #include <vector>
+
 template <typename type, int W, int H>
 class BaseFrame
 {
