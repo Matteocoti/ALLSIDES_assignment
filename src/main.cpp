@@ -2,6 +2,7 @@
 #include "HdrCombiner.hpp"
 #include "SyntheticScene.hpp"
 #include "FakeCamera.hpp"
+#include "ToneMapper.hpp"
 
 auto timeDiff(std::chrono::steady_clock::time_point a, std::chrono::steady_clock::time_point b)
 {
@@ -35,8 +36,10 @@ int main(int argc, char *argv[])
     auto t5 = std::chrono::steady_clock::now();
 
     std::cout << "Merge:  " << timeDiff(t4, t5) << " ms\n";
+    ReinhardToneMapper<4504, 4504> mapper(255);
+    ToneMapFrame<4504, 4504> bmp = mapper.map(hdr);
 
-    hdr.toPGM("hdr.pgm", 4095);
+    bmp.toPGM("hdr.pgm", 255);
 
     return 0;
 }
