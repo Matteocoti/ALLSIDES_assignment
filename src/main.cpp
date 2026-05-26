@@ -30,7 +30,11 @@ int main(int argc, char *argv[])
     flong.toPGM("long.pgm", 4095);
 
     HdrCombiner<4504, 4504> combiner;
+    auto t4 = std::chrono::steady_clock::now();
     HdrFrame<4504, 4504> hdr = combiner.merge(std::vector<CameraFrame<4504, 4504>>{fshort, fmedium, flong});
+    auto t5 = std::chrono::steady_clock::now();
+
+    std::cout << "Merge:  " << timeDiff(t4, t5) << " ms\n";
 
     hdr.toPGM("hdr.pgm", 4095);
 
