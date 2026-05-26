@@ -4,17 +4,18 @@
 int main(int argc, char *argv[])
 {
     SyntheticScene<4504, 4504> scene;
+    FakeCamera<4504, 4504> camera(scene);
 
-    FakeCamera<4504, 4504> fake_camera(scene);
+    CameraFrame<4504, 4504> fshort = camera.grab(ExposureTime::Short);
+    CameraFrame<4504, 4504> fmedium = camera.grab(ExposureTime::Medium);
+    CameraFrame<4504, 4504> flong = camera.grab(ExposureTime::Long);
 
-    BaseFrame fshort = fake_camera.grab(ExposureTime::Short);
 
-    fshort.toPGM("short.pgm", 4096);
+    fshort.toPGM("short.pgm", 4095);
+    fmedium.toPGM("medium.pgm", 4095);
+    flong.toPGM("long.pgm", 4095);
 
-    BaseFrame fmedium = fake_camera.grab(ExposureTime::Medium);
 
-    fmedium.toPGM("medium.pgm", 4096);
-    BaseFrame flong = fake_camera.grab(ExposureTime::Long);
 
     flong.toPGM("long.pgm", 4096);
     return 0;
