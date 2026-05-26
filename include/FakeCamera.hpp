@@ -6,7 +6,14 @@
 #include "ExposureTime.hpp"
 #include "SyntheticScene.hpp"
 
+template <int W, int H>
+class CameraFrame : public BaseFrame<uint16_t, W, H>
 {
+   public:
+    const ExposureTime exposure;
+
+    CameraFrame(ExposureTime exp) : exposure(exp) {}
+};
 
 template <int W, int H>
 class FakeCamera
@@ -17,7 +24,7 @@ class FakeCamera
    public:
     FakeCamera(const SyntheticScene<W, H> &scene);
 
-    BaseFrame<uint16_t, W, H> grab(const ExposureTime exposure) const;
+    CameraFrame<W, H> grab(const ExposureTime exposure) const;
 };
 
 template <int W, int H>
@@ -27,9 +34,9 @@ FakeCamera<W, H>::FakeCamera(const SyntheticScene<W, H> &scene) : scene_(scene)
 
 // TODO: handle std::async exception to mark as noexcept
 template <int W, int H>
-BaseFrame<uint16_t, W, H> FakeCamera<W, H>::grab(const ExposureTime exposure) const
+CameraFrame<W, H> FakeCamera<W, H>::grab(const ExposureTime exposure) const
 {
-    BaseFrame<uint16_t, W, H> frame;
+    CameraFrame<W, H> frame(exposure);
 
     // Define gain using the exposure time: the gain is defined as 1
     // with the medium exposure time and the others are scaled as consequence
