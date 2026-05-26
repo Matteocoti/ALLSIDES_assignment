@@ -1,4 +1,5 @@
 #include <iostream>
+#include "HdrCombiner.hpp"
 #include "SyntheticScene.hpp"
 #include "FakeCamera.hpp"
 
@@ -28,8 +29,10 @@ int main(int argc, char *argv[])
     fmedium.toPGM("medium.pgm", 4095);
     flong.toPGM("long.pgm", 4095);
 
+    HdrCombiner<4504, 4504> combiner;
+    HdrFrame<4504, 4504> hdr = combiner.merge(std::vector<CameraFrame<4504, 4504>>{fshort, fmedium, flong});
 
+    hdr.toPGM("hdr.pgm", 4095);
 
-    flong.toPGM("long.pgm", 4096);
     return 0;
 }
