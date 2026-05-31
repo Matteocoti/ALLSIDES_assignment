@@ -13,7 +13,6 @@ enum class ExposureTime : uint16_t {
     Long = 320,   ///< 320 ms exposure.
 };
 
-constexpr float exposure_ms(ExposureTime e)
 /**
  * @brief Returns the exposure duration in milliseconds.
  *
@@ -21,6 +20,7 @@ constexpr float exposure_ms(ExposureTime e)
  *
  * @return Exposure duration in ms, as a float.
  */
+constexpr float exposure_ms(ExposureTime e) noexcept
 {
     return static_cast<float>(static_cast<uint16_t>(e));
 }
