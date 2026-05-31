@@ -75,11 +75,19 @@ class BaseFrame
 template <typename type, int W, int H>
 bool BaseFrame<type, W, H>::toPGM(const std::string &filePath, const type max_value) const
 {
+    if(max_value <= 0) {
+        throw std::invalid_argument("BaseFrame::toPGM: max value must be > 0");
+    }
+
     std::ofstream f(filePath, std::ios::binary);
 
     f << "P5" << std::endl;
     f << WIDTH << " " << HEIGHT << std::endl;
     f << 65535 << std::endl;
+    // Checking if the file was opened correctly
+    if(!f) {
+        return false;
+    }
 
     for(const auto &pxl : data_) {
         float norm = static_cast<float>(std::clamp(pxl, static_cast<type>(0), max_value)) / static_cast<float>(max_value);
