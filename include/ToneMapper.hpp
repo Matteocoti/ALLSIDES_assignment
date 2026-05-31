@@ -3,18 +3,45 @@
 #include <cstdint>
 #include "HdrCombiner.hpp"
 
+/**
+ * @brief Tone-mapped output frame: an 8-bit, displayable image.
+ */
 template <int W, int H>
 using ToneMapFrame = BaseFrame<uint8_t, W, H>;
 
+/**
+ * @brief Global Reinhard operator: compresses an HDR radiance map to 8-bit.
+ *
+ * Uses the log-average luminance to set the exposure key, then applies the
+ * Reinhard curve L / (1 + L). Global (single curve for the whole image), so it
+ * is cheap and order-independent, at the cost of less local contrast than the
+ * full local Reinhard operator.
+ *
+ * @tparam W Image width in pixels.
+ * @tparam H Image height in pixels.
+ */
 template <int W, int H>
 class ReinhardToneMapper
 {
    private:
-    uint16_t scale_;
+    uint16_t scale_;  ///< Output white level (e.g. 255 for an 8-bit image).
 
    public:
+    /**
+     * @brief Constructs the mapper.
+     *
+     * @param scale Value mapped to full white in the output.
+     */
     ReinhardToneMapper(uint16_t scale);
-    ToneMapFrame<W, H> map(const HdrFrame<W, H> &frame) const noexcept;
+
+    /**
+     * @brief Tone-maps an HDR frame to an 8-bit frame.
+     *
+     * @param frame The HDR radiance map.
+     *
+     * @return The tone-mapped 8-bit frame.
+     */
+    ToneMapFrame<W, H> map(const HdrFrame<W, H> &frame) const;
 };
 
 template <int W, int H>
