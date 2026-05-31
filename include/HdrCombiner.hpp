@@ -49,6 +49,10 @@ HdrFrame<W, H> HdrCombiner<W, H>::merge(const std::vector<CameraFrame<W, H>> &fr
     std::vector<uint32_t> card(4096);
 
     std::vector<float> num_f(4096, 0.0f);
+    std::vector<float> exp_times(num_frames);
+    for(size_t i = 0; i < num_frames; i++) {
+        exp_times[i] = exposure_ms(frames[i].exposure);
+    }
 
     // Convergence loop
     for(size_t iter = 0; iter < max_iter; iter++) {
@@ -58,10 +62,9 @@ HdrFrame<W, H> HdrCombiner<W, H>::merge(const std::vector<CameraFrame<W, H>> &fr
         for(size_t j = 0; j < num_pixels; j++) {
             float num = 0, den = 0;
             for(size_t i = 0; i < num_frames; i++) {
-                float ti = exposure_ms(frames.at(i).exposure);
                 uint16_t z = frames[i][j];
-                num += weight_[z] * f[z] * ti;
-                den += weight_[z] * (ti * ti);
+                num += weight_[z] * f[z] * exp_times[i];
+                den += weight_[z] * (exp_times[i] * exp_times[i]);
             }
             x[j] = (den) ? num / den : 0;
         }
@@ -71,11 +74,11 @@ HdrFrame<W, H> HdrCombiner<W, H>::merge(const std::vector<CameraFrame<W, H>> &fr
         for(size_t j = 0; j < num_pixels; j++) {
             for(size_t i = 0; i < num_frames; i++) {
                 uint16_t m = frames[i][j];
-                if(m == 0 || m == 4095)
+                if(m == 0 || m == 4095) {
                     continue;
-                float ti = exposure_ms(frames.at(i).exposure);
+                }
                 card[m] += 1;
-                num_f[m] += ti * x[j];
+                num_f[m] += exp_times[i] * x[j];
             }
         }
 
