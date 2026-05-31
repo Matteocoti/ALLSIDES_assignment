@@ -45,10 +45,12 @@ class ReinhardToneMapper
 };
 
 template <int W, int H>
-ReinhardToneMapper<W, H>::ReinhardToneMapper(uint16_t scale) : scale_(scale) {}
+ReinhardToneMapper<W, H>::ReinhardToneMapper(uint16_t scale) : scale_(scale)
+{
+}
 
 template <int W, int H>
-ToneMapFrame<W, H> ReinhardToneMapper<W, H>::map(const HdrFrame<W, H> &frame) const noexcept
+ToneMapFrame<W, H> ReinhardToneMapper<W, H>::map(const HdrFrame<W, H> &frame) const
 {
     ToneMapFrame<W, H> toneMapFrame;
 
@@ -58,13 +60,13 @@ ToneMapFrame<W, H> ReinhardToneMapper<W, H>::map(const HdrFrame<W, H> &frame) co
     float log_sum = 0.0f;
     for(int i = 0; i < frame.SIZE; i++)
         log_sum += std::log(frame[i] + eps);
-    float L_avg = std::exp(log_sum / static_cast<float>(frame.SIZE));
+    const float L_avg = std::exp(log_sum / static_cast<float>(frame.SIZE));
 
-    float scale_factor = key / L_avg;
+    const float scale_factor = key / L_avg;
 
     for(int idx = 0; idx < frame.SIZE; idx++) {
-        float x = frame[idx] * scale_factor;
         toneMapFrame[idx] = static_cast<uint8_t>(scale_ * (x / (1.0f + x)));
+        const float x = frame[idx] * scale_factor;
     }
 
     return toneMapFrame;
