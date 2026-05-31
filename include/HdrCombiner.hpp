@@ -9,23 +9,58 @@
 #include "FakeCamera.hpp"
 #include "Sensor.hpp"
 
+/**
+ * @brief HDR output frame: a floating-point radiance map.
+ */
 template <int W, int H>
 using HdrFrame = BaseFrame<float, W, H>;
 
+/**
+ * @brief Per-thread partial histograms used to re-estimate the response (Step B).
+ *
+ * Each worker accumulates into its own Hist over a disjoint range of pixels;
+ * the partials are then reduced into the global histograms, avoiding data races.
+ */
 struct Hist {
     std::vector<uint32_t> card;  ///< Per-level pixel counts.
     std::vector<float> numf;     ///< Per-level accumulated t_i * x_j.
 };
 
+/**
+ * @brief Merges multiple exposures into an HDR radiance map (Robertson's method).
+ *
+ * Implements the iterative maximum-likelihood estimation of Robertson et al.:
+ * it alternates between estimating the per-pixel irradiance (Step A) and the
+ * camera response function (Step B), weighting each measurement by its
+ * reliability (a Gaussian centred on the mid-range, zero for saturated and black
+ * pixels). Saturated and underexposed samples are therefore excluded from the
+ * estimate.
+ *
+ * @tparam W Image width in pixels.
+ * @tparam H Image height in pixels.
+ */
 template <int W, int H>
 class HdrCombiner
 {
    private:
-    std::vector<float> weight_;
+    std::vector<float> weight_;  ///< Reliability weight per pixel value (LUT, size NUM_LEVELS).
 
    public:
+    /**
+     * @brief Builds the reliability weight lookup table.
+     */
     HdrCombiner();
 
+    /**
+     * @brief Merges the given exposures into a single HDR radiance map.
+     *
+     * @param frames   The exposures to merge (same scene, different exposure times).
+     *
+     * @param max_iter Maximum number of refinement iterations.
+     * @param delta    Convergence threshold on the mean per-level response change.
+     *
+     * @return The merged HDR frame (radiance, defined up to a global scale factor).
+     */
     HdrFrame<W, H> merge(const std::vector<CameraFrame<W, H>> &frames,
                          const size_t max_iter = 20,
                          const float delta = 1e-3) const;
