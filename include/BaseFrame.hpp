@@ -99,6 +99,26 @@ class BaseFrame
     }
 
     /**
+     *  @brief Returns a pointer to the contiguous pixel buffer.
+     *
+     *  @return Mutable pointer to the underlying data array.
+     */
+    type *data() noexcept
+    {
+        return data_.data();
+    }
+
+    /**
+     *  @brief Returns a const pointer to the contiguous pixel buffer.
+     *
+     *  @return Const pointer to the underlying data array.
+     */
+    const type *data() const noexcept
+    {
+        return data_.data();
+    }
+
+    /**
      *  @brief Unchecked mutable access by linear buffer index.
      *
      *  @param i Flat index, expected in [0, SIZE).
