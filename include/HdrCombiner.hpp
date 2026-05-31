@@ -138,9 +138,12 @@ HdrFrame<W, H> HdrCombiner<W, H>::merge(const std::vector<CameraFrame<W, H>> &fr
         for(size_t m = 0; m < Sensor12::NUM_LEVELS; m++) {
             f_new[m] = card[m] > 0 ? num_f[m] / card[m] : (m > 0 ? f[m] : 0.0f);
         }
-        float pivot = f_new[Sensor12::NUM_LEVELS / 2];
-        for(size_t m = 0; m < Sensor12::NUM_LEVELS; m++) {
-            f_new[m] /= pivot;
+        // Fix the scale ambiguity by normalising the response at the mid-range.
+        const float pivot = f_new[Sensor12::NUM_LEVELS / 2];
+        if(pivot > 0.0f) {
+            for(size_t m = 0; m < Sensor12::NUM_LEVELS; m++) {
+                f_new[m] /= pivot;
+            }
         }
 
         float diff = 0;
