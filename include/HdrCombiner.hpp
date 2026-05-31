@@ -12,6 +12,11 @@
 template <int W, int H>
 using HdrFrame = BaseFrame<float, W, H>;
 
+struct Hist {
+    std::vector<uint32_t> card;  ///< Per-level pixel counts.
+    std::vector<float> numf;     ///< Per-level accumulated t_i * x_j.
+};
+
 template <int W, int H>
 class HdrCombiner
 {
@@ -90,19 +95,42 @@ HdrFrame<W, H> HdrCombiner<W, H>::merge(const std::vector<CameraFrame<W, H>> &fr
                 }
             }));
         }
-        for(auto &fut : futures)
+        for(auto &fut : futures) {
             fut.get();
+        }
 
-        // Step B: once determined the current optimal x, we try to determine the
-        // camera response function
-        for(size_t j = 0; j < num_pixels; j++) {
-            for(size_t i = 0; i < num_frames; i++) {
-                uint16_t m = frames[i][j];
-                if(m == 0 || m == Sensor12::MAX_VAL) {
-                    continue;
+        // Step B: re-estimate the response from x. card[m] / num_f[m] are
+        // histograms over the pixel value m, and different pixels hit the same
+        // bin, so each thread accumulates into a private local histogram and the
+        // partials are reduced into the globals.
+        auto stepB = [&](size_t start, size_t stop) -> Hist {
+            Hist h{std::vector<uint32_t>(Sensor12::NUM_LEVELS, 0), std::vector<float>(Sensor12::NUM_LEVELS, 0.0f)};
+            for(size_t j = start; j < stop; ++j) {
+                for(size_t i = 0; i < num_frames; ++i) {
+                    const uint16_t m = frames[i][j];
+                    if(m == 0 || m == Sensor12::MAX_VAL) {
+                        continue;
+                    }
+                    h.card[m] += 1;
+                    h.numf[m] += exp_times[i] * x[j];
                 }
-                card[m] += 1;
-                num_f[m] += exp_times[i] * x[j];
+            }
+            return h;
+        };
+
+        std::vector<std::future<Hist>> bFutures;
+        bFutures.reserve(n_threads);
+        for(unsigned idx = 0; idx < n_threads; ++idx) {
+            const size_t start = chunk * idx;
+            const size_t stop = (idx == n_threads - 1) ? num_pixels : chunk * (idx + 1);
+            bFutures.push_back(std::async(std::launch::async, stepB, start, stop));
+        }
+        // Reduction of the per-thread partials into the global histograms.
+        for(auto &fut : bFutures) {
+            const Hist h = fut.get();
+            for(int m = 0; m < Sensor12::NUM_LEVELS; ++m) {
+                card[m] += h.card[m];
+                num_f[m] += h.numf[m];
             }
         }
 
