@@ -70,7 +70,7 @@ HdrCombiner<W, H>::HdrCombiner() : weight_(Sensor12::NUM_LEVELS, 0.0f)
 {
     // Gaussian reliability weight centred on the mid-range; the extremes
     // (0 and MAX_VAL) stay at 0 to discard saturated and black pixels.
-    for(int i = 1; i < Sensor12::MAX_VAL; i++) {
+    for(int i = 1; i < static_cast<int>(Sensor12::MAX_VAL); i++) {
         weight_[i] = std::exp(-4.0f * (i - Sensor12::MID) * (i - Sensor12::MID) / (Sensor12::MID * Sensor12::MID));
     }
 }
@@ -89,7 +89,7 @@ HdrFrame<W, H> HdrCombiner<W, H>::merge(const std::vector<CameraFrame<W, H>> &fr
     // Initialization of the camera response function as linear
     std::vector<float> f(Sensor12::NUM_LEVELS);
 
-    for(size_t j = 0; j < Sensor12::NUM_LEVELS; j++) {
+    for(int j = 0; j < Sensor12::NUM_LEVELS; j++) {
         f[j] = j / static_cast<float>(Sensor12::NUM_LEVELS);
     }
 
@@ -170,19 +170,19 @@ HdrFrame<W, H> HdrCombiner<W, H>::merge(const std::vector<CameraFrame<W, H>> &fr
         }
 
         std::vector<float> f_new(Sensor12::NUM_LEVELS, 0.0f);
-        for(size_t m = 0; m < Sensor12::NUM_LEVELS; m++) {
+        for(int m = 0; m < Sensor12::NUM_LEVELS; m++) {
             f_new[m] = card[m] > 0 ? num_f[m] / card[m] : (m > 0 ? f[m] : 0.0f);
         }
         // Fix the scale ambiguity by normalising the response at the mid-range.
         const float pivot = f_new[Sensor12::NUM_LEVELS / 2];
         if(pivot > 0.0f) {
-            for(size_t m = 0; m < Sensor12::NUM_LEVELS; m++) {
+            for(int m = 0; m < Sensor12::NUM_LEVELS; m++) {
                 f_new[m] /= pivot;
             }
         }
 
         float diff = 0;
-        for(size_t m = 0; m < Sensor12::NUM_LEVELS; m++) {
+        for(int m = 0; m < Sensor12::NUM_LEVELS; m++) {
             diff += std::abs(f_new[m] - f[m]);
         }
 
