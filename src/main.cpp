@@ -52,7 +52,12 @@ int main()
     // Merge the exposures into an HDR radiance map, timing the merge.
     HdrCombiner<RES, RES> combiner;
     auto t4 = std::chrono::steady_clock::now();
-    HdrFrame<RES, RES> hdr = combiner.merge(std::vector<CameraFrame<RES, RES>>{fshort, fmedium, flong});
+    std::vector<CameraFrame<RES, RES>> frames;
+    frames.reserve(3);
+    frames.push_back(std::move(fshort));
+    frames.push_back(std::move(fmedium));
+    frames.push_back(std::move(flong));
+    HdrFrame<RES, RES> hdr = combiner.merge(frames);
     auto t5 = std::chrono::steady_clock::now();
 
     std::cout << "Merge:  " << timeDiff(t4, t5) << " ms\n";
