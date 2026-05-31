@@ -1,5 +1,6 @@
 #pragma once
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <fstream>
 #include <stdexcept>
@@ -159,6 +160,19 @@ class BaseFrame
         return data_[i];
     }
 
+    /**
+     * @brief Writes the frame as a binary PGM (P5) file.
+     *
+     * Pixels are normalised against @p max_value and written at 8-bit depth when
+     * @p max_value <= 255, otherwise at 16-bit big-endian depth.
+     *
+     * @param filePath  Destination path.
+     * @param max_value Value mapped to full white; must be > 0.
+     *
+     * @return true on success, false if the file could not be opened or a write failed.
+     *
+     * @throws std::invalid_argument if @p max_value <= 0.
+     */
     bool toPGM(const std::string &filePath, const type max_value) const;
 };
 
@@ -171,22 +185,30 @@ bool BaseFrame<type, W, H>::toPGM(const std::string &filePath, const type max_va
 
     std::ofstream f(filePath, std::ios::binary);
 
-    f << "P5" << std::endl;
-    f << WIDTH << " " << HEIGHT << std::endl;
-    f << 65535 << std::endl;
     // Checking if the file was opened correctly
     if(!f) {
         return false;
     }
 
+    // On the basis of the max value, the function defines if the data must be
+    // represented with one or two bytes.
+    const bool eightBit = (max_value <= static_cast<type>(255));
+    const int outMax = eightBit ? 255 : 65535;
+
+    f << "P5\n" << WIDTH << " " << HEIGHT << "\n" << outMax << "\n";
+
     for(const auto &pxl : data_) {
-        float norm = static_cast<float>(std::clamp(pxl, static_cast<type>(0), max_value)) / static_cast<float>(max_value);
+        const float norm = static_cast<float>(std::clamp(pxl, static_cast<type>(0), max_value)) / static_cast<float>(max_value);
 
-        uint16_t val = static_cast<uint16_t>(norm * 65535.0f);
-
-        f.put(val >> 8);
-        f.put(val & 0xFF);
+        if(eightBit) {
+            const auto val = static_cast<uint8_t>(std::lround(norm * 255.0f));
+            f.put(static_cast<char>(val));
+        } else {
+            const auto val = static_cast<uint16_t>(std::lround(norm * 65535.0f));
+            f.put(static_cast<char>(val >> 8));
+            f.put(static_cast<char>(val & 0xFF));
+        }
     }
 
-    return true;
+    return f.good();
 }
