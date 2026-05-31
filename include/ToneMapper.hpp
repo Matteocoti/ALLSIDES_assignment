@@ -65,8 +65,8 @@ ToneMapFrame<W, H> ReinhardToneMapper<W, H>::map(const HdrFrame<W, H> &frame) co
     const float scale_factor = key / L_avg;
 
     for(int idx = 0; idx < frame.SIZE; idx++) {
-        toneMapFrame[idx] = static_cast<uint8_t>(scale_ * (x / (1.0f + x)));
         const float x = frame[idx] * scale_factor;
+        toneMapFrame[idx] = static_cast<uint8_t>(std::lround(scale_ * (x / (1.0f + x))));
     }
 
     return toneMapFrame;
