@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <fstream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -18,8 +19,6 @@ class BaseFrame
 
     BaseFrame() : data_(SIZE, type{0}) {}
 
-    // TODO: bound check
-
     type &operator()(int x, int y)
     {
         return data_[x + y * WIDTH];
@@ -30,12 +29,43 @@ class BaseFrame
         return data_[x + y * WIDTH];
     }
 
+    type &at(int x, int y)
+    {
+        if(x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) {
+            throw std::out_of_range("BaseFrame::at: coordinates out of range");
+        }
+        return data_[x + y * WIDTH];
+    }
+
+    const type &at(int x, int y) const
+    {
+        if(x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) {
+            throw std::out_of_range("BaseFrame::at: coordinates out of range");
+        }
+        return data_[x + y * WIDTH];
+    }
+
     type &operator[](int i)
     {
         return data_[i];
     }
     const type &operator[](int i) const
     {
+        return data_[i];
+    }
+
+    type &at(int i)
+    {
+        if(i >= SIZE || i < 0) {
+            throw std::out_of_range("BaseFrame::at: index out of range");
+        }
+        return data_[i];
+    }
+    const type &at(int i) const
+    {
+        if(i >= SIZE || i < 0) {
+            throw std::out_of_range("BaseFrame::at: index out of range");
+        }
         return data_[i];
     }
 
