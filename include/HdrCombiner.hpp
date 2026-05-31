@@ -1,5 +1,10 @@
 #pragma once
 
+#include <algorithm>
+#include <cmath>
+#include <future>
+#include <thread>
+#include <vector>
 #include "ExposureTime.hpp"
 #include "FakeCamera.hpp"
 #include "Sensor.hpp"
@@ -57,20 +62,36 @@ HdrFrame<W, H> HdrCombiner<W, H>::merge(const std::vector<CameraFrame<W, H>> &fr
         exp_times[i] = exposure_ms(frames[i].exposure);
     }
 
+    // Pixels are independent in Step A, so the work is split across all available
+    // hardware threads. hardware_concurrency() may report 0, hence the guard.
+    const unsigned n_threads = std::max(1u, std::thread::hardware_concurrency());
+    const size_t chunk = num_pixels / n_threads;
+
     // Convergence loop
     for(size_t iter = 0; iter < max_iter; iter++) {
         std::fill(card.begin(), card.end(), 0);
         std::fill(num_f.begin(), num_f.end(), 0.0f);
-        // Step A: finding x[j] for each pixel looping over the frames
-        for(size_t j = 0; j < num_pixels; j++) {
-            float num = 0, den = 0;
-            for(size_t i = 0; i < num_frames; i++) {
-                uint16_t z = frames[i][j];
-                num += weight_[z] * f[z] * exp_times[i];
-                den += weight_[z] * (exp_times[i] * exp_times[i]);
-            }
-            x[j] = (den) ? num / den : 0;
+        // Step A: estimate x[j] for each pixel. Pixels are independent, so the
+        // range is split across threads (each writes its own disjoint x[j]).
+        std::vector<std::future<void>> futures;
+        futures.reserve(n_threads);
+        for(unsigned idx = 0; idx < n_threads; ++idx) {
+            const size_t start = chunk * idx;
+            const size_t stop = (idx == n_threads - 1) ? num_pixels : chunk * (idx + 1);
+            futures.push_back(std::async(std::launch::async, [&, start, stop]() {
+                for(size_t j = start; j < stop; ++j) {
+                    float num = 0, den = 0;
+                    for(size_t i = 0; i < num_frames; ++i) {
+                        const uint16_t z = frames[i][j];
+                        num += weight_[z] * f[z] * exp_times[i];
+                        den += weight_[z] * (exp_times[i] * exp_times[i]);
+                    }
+                    x[j] = (den) ? num / den : 0.0f;
+                }
+            }));
         }
+        for(auto &fut : futures)
+            fut.get();
 
         // Step B: once determined the current optimal x, we try to determine the
         // camera response function
